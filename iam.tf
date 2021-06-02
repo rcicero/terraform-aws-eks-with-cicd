@@ -41,22 +41,3 @@ resource "aws_iam_role_policy_attachment" "test-attach" {
   role       = aws_iam_role.role.name
   policy_arn = aws_iam_policy.policy.arn
 }
-
-#CodePipeline Role
-data "aws_iam_policy_document" "APP_CP_ASSUME_ROLE" {
-  statement {
-    effect  = "Allow"
-    actions = ["sts:AssumeRole"]
-
-    principals {
-      type        = "Service"
-      identifiers = ["codepipeline.amazonaws.com"]
-    }
-  }
-}
-
-// CODE PIPELINE ROLE
-resource "aws_iam_role" "APP_ROLE_CP" {
-  name               = "eks-codepipeline-role"
-  assume_role_policy = data.aws_iam_policy_document.APP_CP_ASSUME_ROLE.json
-}

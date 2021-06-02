@@ -1,6 +1,40 @@
-resource "aws_codepipeline" "pipeline" {
-  name     = "teste-${var.environment}"
-  role_arn = "aws_iam_role.APP_ROLE_CP.arn"
+#CodePipeline Role
+data "aws_iam_policy_document" "APP_CP_ASSUME_ROLE" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["codepipeline.amazonaws.com"]
+    }
+  }
+}
+
+// CODE PIPELINE ROLE
+resource "aws_iam_role" "APP_ROLE_CP" {
+  name               = "eks-codepipeline-role"
+  assume_role_policy = data.aws_iam_policy_document.APP_CP_ASSUME_ROLE.json
+}
+
+resource "aws_s3_bucket" "example2" {
+  bucket = "example129292897282"
+  acl    = "private"
+}
+
+resource "aws_codestarconnections_connection" "example" {
+  name          = "example-connection"
+  provider_type = "GitHub"
+}
+
+resource "aws_codepipeline" "APP_CODE_PIPELINE" {
+  name     = "${var.environment}-teste"
+  role_arn = "${aws_iam_role.APP_ROLE_CP.arn}"
+
+  artifact_store {
+    location = "${aws_s3_bucket.example2.bucket}"
+    type     = "S3"
+  }
 
   stage {
     name = "Source"
@@ -11,34 +45,67 @@ resource "aws_codepipeline" "pipeline" {
       owner            = "AWS"
       provider         = "CodeStarSourceConnection"
       version          = "1"
-      output_artifacts = ["source_output"]
+      output_artifacts = ["source"]
 
       configuration = {
-        ConnectionArn    = "arn:aws:codestar-connections:us-east-1:524945736758:connection/91a0eb07-5620-4e41-9984-b45bc1547380"
-        FullRepositoryId = var.bitbucket_repository_name
-        BranchName       = var.bitbucket_repository_branch
+        ConnectionArn    = aws_codestarconnections_connection.example.arn
+        FullRepositoryId = "my-organization/example"
+        BranchName       = "main"
+      }
+    }
+  }
+ 
+  stage {
+    name = "Deploy"
+
+    action {
+      name             = "Test"
+      category         = "Test"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      input_artifacts  = ["source"]
+      output_artifacts = ["tested"]
+      version          = "1"
+
+      configuration = {
+        ProjectName = "${aws_codebuild_project.example.name}"
+      }
+    }
+  }
+
+ /* stage {
+    name = "Test"
+
+    action {
+      name             = "Test"
+      category         = "Test"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      input_artifacts  = ["source"]
+      output_artifacts = ["tested"]
+      version          = "1"
+
+      configuration = {
+        ProjectName = "${aws_codebuild_project.test_project.name}"
       }
     }
   }
 
   stage {
-    name = "Build"
+    name = "Package"
 
     action {
-      name             = "Build"
+      name             = "Package"
       category         = "Build"
       owner            = "AWS"
       provider         = "CodeBuild"
+      input_artifacts  = ["tested"]
+      output_artifacts = ["packaged"]
       version          = "1"
-      input_artifacts  = ["source_output"]
-      output_artifacts = ["BuildArtifact"]
 
       configuration = {
-        ProjectName = "crdc"
-        EnvironmentVariables = file("${path.module}/envvars.json")
+        ProjectName = "${aws_codebuild_project.build_project.name}"
       }
-
-     
     }
-  }
+  }*/
 }
