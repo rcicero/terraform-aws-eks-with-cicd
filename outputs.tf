@@ -33,7 +33,3 @@ output "roleiam" {
   value       = aws_iam_policy.policy.arn
 }
 
-output "cluster_name" {
-  description = "Kubernetes Cluster Name"
-  value       = local.cluster_name
-}

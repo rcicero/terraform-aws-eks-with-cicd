@@ -1,11 +1,4 @@
-variable "region" {
-  default     = "us-east-1"
-  description = "AWS region"
-}
 
-provider "aws" {
-  region = "us-east-1"
-}
 
 data "aws_availability_zones" "available" {}
 
@@ -22,7 +15,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "2.66.0"
 
-  name                 = "education-vpc"
+  name                 = "${local.cluster_name}"
   cidr                 = "10.167.0.0/16"
   azs                  = data.aws_availability_zones.available.names
   private_subnets      = ["10.167.1.0/24", "10.167.2.0/24", "10.167.3.0/24"]
